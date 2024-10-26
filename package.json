@@ -1,0 +1,22 @@
+{
+  "name": "wallu-telegram-bot",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Telegram bot for Wallubot API integration",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "migrate": "node src/db/migrate.js",
+    "dev": "nodemon src/index.js"
+  },
+  "dependencies": {
+    "axios": "^1.7.7",
+    "better-sqlite3": "^11.5.0",
+    "crypto-js": "^4.2.0",
+    "dotenv": "^16.4.5",
+    "node-telegram-bot-api": "^0.66.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.0"
+  }
+}

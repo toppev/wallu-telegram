@@ -1,0 +1,40 @@
+version: '3.8'
+
+services:
+  bot-dev:
+    build:
+      context: .
+      target: dev
+    container_name: wallu-telegram-bot-dev
+    profiles: [ dev ]
+    volumes:
+      - ./data-dev:/app/data
+    env_file: [ .env ]
+    restart: unless-stopped
+    develop:
+      watch:
+        - action: sync
+          path: ./src
+          target: /app/src
+        - action: sync
+          path: .env
+          target: /app/.env
+        - action: rebuild
+          path: package.json
+        - action: rebuild
+          path: Dockerfile
+  bot-prod:
+    build:
+      context: .
+      target: prod
+    container_name: wallu-telegram-bot
+    profiles: [ prod ]
+    volumes:
+      - ./data:/app/data
+    env_file: [ .env ]
+    restart: unless-stopped
+    healthcheck:
+      test: [ "CMD", "sqlite3", "/app/data/wallu_telegram.db", "SELECT 1" ]
+      interval: 30s
+      timeout: 5s
+      retries: 3
