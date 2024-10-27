@@ -175,13 +175,14 @@ bot.on('message', async (msg) => {
   const chatId = msg.chat.id
   const setupState = setupStates.get(userId)
 
+  const chatTitle = (await bot.getChat(chatId)).title
   if (setupState && setupState.state === 'AWAITING_API_KEY') {
     try {
       // Test we don't get 401 or 403 with the API key
       await ensureApiReachable(msg.text, `during setup by user ${userId}`)
 
       await db.saveApiKey(msg.text, setupState.targetChatId, userId)
-      const chatName = userId === chatId ? "this private chat" : (await bot.getChat(chatId)).title
+      const chatName = userId === chatId ? "this private chat" : chatTitle
       await bot.sendMessage(userId, `Wallu has been successfully configured for ${chatName}! ✅`)
       if (setupState.targetChatId !== userId) {
         await bot.sendMessage(setupState.targetChatId, `Wallu has been successfully configured for ${chatName}! ✅`)
@@ -222,6 +223,7 @@ bot.on('message', async (msg) => {
       },
       channel: {
         id: chatId.toString(),
+        name: 'Telegram: ' + (chatTitle || 'private chat'),
       },
       user: {
         id: msg.from.id.toString(),
@@ -248,7 +250,7 @@ bot.on('message', async (msg) => {
       await sendMarkdownMessage(chatId, response.data.response.message, {
         reply_to_message_id: msg.message_id,
       })
-      console.log(`Answered in chat ${chatId} (` + ((await bot.getChat(chatId)).title || 'private') + `)`)
+      console.log(`Answered in chat ${chatId} (` + (chatTitle || 'private') + `)`)
     }
   } catch (error) {
     console.error('Error processing message:', error)
