@@ -235,7 +235,8 @@ bot.on('message', async (msg) => {
       },
       configuration: {
         emoji_type: 'unicode',
-        include_sources: true,
+        // The [[1]](https://google.com) type of links had hard time rendering on Telegram properly so let's just disable them for now
+        include_sources: false,
       }
     }, {
       headers: {
@@ -247,6 +248,7 @@ bot.on('message', async (msg) => {
       await sendMarkdownMessage(chatId, response.data.response.message, {
         reply_to_message_id: msg.message_id,
       })
+      console.log(`Answered in chat ${chatId} (` + ((await bot.getChat(chatId)).title || 'private') + `)`)
     }
   } catch (error) {
     console.error('Error processing message:', error)
@@ -305,11 +307,17 @@ bot.onText(/\/wallu_remove/, async (msg) => {
 
 async function sendMarkdownMessage(chatId, text, form = {}) {
   try {
-    await bot.sendMessage(chatId, text.replace(/[_*[\]()~`>#+=|{}.!-]/g, '\\$&'), {
-      parse_mode: 'MarkdownV2',
+    // "Markdown" or telegram whatever doesn't support links like [1](<https://google.com>) so replace the <> in those cases with regex manually her
+    text = text.replace(/\(<(https?:\/\/[^)]+)>\)/g, '($1)')
+    await bot.sendMessage(chatId, text, {
+      parse_mode: 'Markdown', // "MarkdownV2" is confusing ... so let's use the legacy "Markdown"
       ...form
     })
   } catch (error) {
     console.error('Error sending Markdown message:', error)
+    // on 400 error try without markdown
+    if (error.response && error.response.status === 400) {
+      await bot.sendMessage(chatId, text, form)
+    }
   }
 }
