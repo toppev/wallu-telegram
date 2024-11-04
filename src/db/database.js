@@ -16,17 +16,17 @@ export class DbManager {
     console.log(`Database connected to ${databasePath}`)
   }
 
-  encrypt(text) {
+  _encrypt(text) {
     return CryptoJS.AES.encrypt(text, this.encryptionKey).toString()
   }
 
-  decrypt(encryptedText) {
+  _decrypt(encryptedText) {
     const bytes = CryptoJS.AES.decrypt(encryptedText, this.encryptionKey)
     return bytes.toString(CryptoJS.enc.Utf8)
   }
 
   saveApiKey(apiKey, chatId, userId) {
-    const encrypted = this.encrypt(apiKey)
+    const encrypted = this._encrypt(apiKey)
     const upsertQuery = `
       INSERT INTO chat_configs (chat_id, api_key_encrypted, updated_by_user_id, updated_at)
       VALUES (?, ?, ?, CURRENT_TIMESTAMP)
@@ -34,16 +34,16 @@ export class DbManager {
                                          updated_by_user_id = excluded.updated_by_user_id,
                                          updated_at         = CURRENT_TIMESTAMP
     `
-    this.db.prepare(upsertQuery).run(chatId, encrypted, userId)
+    this.db.prepare(upsertQuery).run(String(chatId), encrypted, String(userId))
     console.log(`Saved API key for chat ${chatId} updated by user ${userId}`)
   }
 
   getApiKeyFor(chatId) {
     const row = this.db
       .prepare('SELECT api_key_encrypted FROM chat_configs WHERE chat_id = ?')
-      .get(chatId)
+      .get(String(chatId))
     if (row) {
-      return this.decrypt(row.api_key_encrypted)
+      return this._decrypt(row.api_key_encrypted)
     }
     return null
   }
@@ -51,7 +51,7 @@ export class DbManager {
   deleteApiKey(chatId) {
     this.db
       .prepare('DELETE FROM chat_configs WHERE chat_id = ?')
-      .run(chatId)
+      .run(String(chatId))
     console.log(`Deleted API key for chat ${chatId}`)
   }
 }
