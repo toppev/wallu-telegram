@@ -72,7 +72,7 @@ bot.onText(/\/wallu_setup/, async (msg) => {
   } else if (msg.chat.type !== 'private') {
     const keyboard = {
       inline_keyboard: [[{
-        text: 'Set Wallu API key (opens a private chat)',
+        text: 'Click to set Wallu API key (opens a private chat)',
         url: `https://t.me/${botInfo.username}?start=setup_${chatId}`
       }]]
     }
