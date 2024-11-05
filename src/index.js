@@ -201,7 +201,7 @@ bot.on('message', async (msg) => {
     return
   }
   const isBotMentioned = msg.text && (
-    msg.reply_to_message?.from?.id === bot.id ||
+    msg.reply_to_message?.from?.id === botInfo.id ||
     msg.text.includes(`@${botInfo.username}`) ||
     msg.chat.type === 'private'
   )
