@@ -21,8 +21,12 @@ Wallu's API to process messages and generate helpful responses.
 
 1. Add the bot to your Telegram chat/group: [WalluChatBot](https://wallubot.com/telegram)
 2. Get your Wallu API key from [panel.wallubot.com/addons](https://panel.wallubot.com/addons)
-3. Use the `/wallu_setup` command to configure the bot (admin only)
-4. Follow the bot's instructions to complete the setup
+3. Use the `/wallu_setup` command to configure the bot (admin only). Use this command in the group/chat where you want Wallu to be active.
+4. Follow the bot's instructions to complete the setup.
+5. By default, it uses your server default settings. You can configure Telegram groups in the channels page.
+
+**Note:** make sure the bot has enough permissions in the Telegram group. It should have access to messages (says "has access to messages") and permission to
+send messages. Click members -> Wallu -> User permissions.
 
 ## Self-hosting Prerequisites
 
@@ -35,7 +39,7 @@ Wallu's API to process messages and generate helpful responses.
 1. Clone this repository
 
 ```bash
-git clone https://github.com/yourusername/wallu-telegram
+git clone https://github.com/toppev/wallu-telegram
 cd wallu-telegram
 ```
 
