@@ -200,7 +200,12 @@ bot.on('message', async (msg) => {
     await bot.deleteMessage(userId, msg.message_id)
     return
   }
-  const isBotMentioned = msg.text && (
+  const messageText = msg.text;
+  if (!messageText || messageText.trim() === '') {
+    console.log(`Ignoring empty message from chat ${chatId}`)
+    return
+  }
+  const isBotMentioned = messageText && (
     msg.reply_to_message?.from?.id === botInfo.id ||
     msg.text.includes(`@${botInfo.username}`) ||
     msg.chat.type === 'private'
@@ -211,11 +216,9 @@ bot.on('message', async (msg) => {
       console.log(`Ignoring, no API key set for chat ${chatId}`)
       return
     }
-
     if (isBotMentioned) {
       await bot.sendChatAction(chatId, 'typing')
     }
-
     const response = await axios.post(`${WALLU_API_URL}/on-message`, {
       addon: {
         name: 'wallu-telegram',
@@ -233,7 +236,7 @@ bot.on('message', async (msg) => {
       message: {
         id: `${chatId}-${msg.message_id}`,
         is_bot_mentioned: isBotMentioned,
-        content: msg.text,
+        content: messageText,
       },
       configuration: {
         emoji_type: 'unicode',
