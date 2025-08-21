@@ -48,6 +48,7 @@ async function isAdmin(chatId, userId) {
   if (chatId === userId) return true
   try {
     const chatMember = await bot.getChatMember(chatId, userId)
+    console.log(`Chat member ${chatMember.user.username} status (userId=${userId}) in chat ${chatId}:`, chatMember.status)
     return ['creator', 'administrator'].includes(chatMember.status)
   } catch (error) {
     console.error('Error checking admin status:', error)
