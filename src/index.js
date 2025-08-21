@@ -325,7 +325,7 @@ async function sendMarkdownMessage(chatId, text, form = {}) {
   } catch (error) {
     console.error('Error sending Markdown message:', error)
     // on 400 error try without markdown
-    if (error.response && error.response.status === 400) {
+    if (error.response && error.response.statusCode === 400) {
       await bot.sendMessage(chatId, text, form)
     }
   }
