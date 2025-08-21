@@ -43,12 +43,14 @@ bot.setMyCommands([
   .then(() => console.log('Commands set up successfully'))
 
 // Helper function to check if user is admin
-async function isAdmin(chatId, userId) {
+async function isAdmin(chatId, userId, verbose) {
   // always in private chats
   if (chatId === userId) return true
   try {
     const chatMember = await bot.getChatMember(chatId, userId)
-    console.log(`Chat member ${chatMember.user.username} status (userId=${userId}) in chat ${chatId}:`, chatMember.status)
+    if (verbose) {
+      console.log(`Chat member ${chatMember.user.username} status (userId=${userId}) in chat ${chatId}:`, chatMember.status)
+    }
     return ['creator', 'administrator'].includes(chatMember.status)
   } catch (error) {
     console.error('Error checking admin status:', error)
@@ -68,7 +70,7 @@ bot.onText(/\/wallu_setup/, async (msg) => {
   const chatId = msg.chat.id
   const userId = msg.from.id
 
-  if (!await isAdmin(chatId, userId)) {
+  if (!await isAdmin(chatId, userId, true)) {
     await bot.sendMessage(chatId, 'Only administrators can configure the bot.')
   } else if (msg.chat.type !== 'private') {
     const keyboard = {
@@ -98,7 +100,7 @@ bot.onText(/\/start(?:\s+(.+))?/, async (msg, match) => {
   if (parameter.startsWith('setup_')) {
     const targetChatId = parameter.replace('setup_', '')
     try {
-      if (!await isAdmin(targetChatId, msg.from.id)) {
+      if (!await isAdmin(targetChatId, msg.from.id, true)) {
         await bot.sendMessage(chatId, 'You need to be an administrator in the target chat to configure the bot.')
         return
       }
@@ -173,20 +175,20 @@ bot.on('message', async (msg) => {
     return
   }
   const userId = msg.from.id
-  const chatId = msg.chat.id
-  const setupState = setupStates.get(userId)
 
-  const chatTitle = (await bot.getChat(chatId)).title
+  const setupState = setupStates.get(userId)
+  const chatTitle = (await bot.getChat(setupTargetChatid)).title
   if (setupState && setupState.state === 'AWAITING_API_KEY') {
     try {
+      const setupTargetChatId = setupState.targetChatId;
       // Test we don't get 401 or 403 with the API key
       await ensureApiReachable(msg.text, `during setup by user ${userId}`)
 
-      await db.saveApiKey(msg.text, setupState.targetChatId, userId)
+      await db.saveApiKey(msg.text, setupTargetChatId, userId)
       const chatName = userId === chatId ? "this private chat" : chatTitle
       await bot.sendMessage(userId, `Wallu has been successfully configured for ${chatName}! ✅`)
-      if (setupState.targetChatId !== userId) {
-        await bot.sendMessage(setupState.targetChatId, `Wallu has been successfully configured for ${chatName}! ✅`)
+      if (setupTargetChatId !== userId) {
+        await bot.sendMessage(setupTargetChatId, `Wallu has been successfully configured for ${chatName}! ✅`)
       }
       setupStates.delete(userId)
     } catch (error) {
@@ -201,6 +203,7 @@ bot.on('message', async (msg) => {
     await bot.deleteMessage(userId, msg.message_id)
     return
   }
+  const chatId = msg.chat.id
   const messageText = msg.text;
   if (!messageText || messageText.trim() === '') {
     console.log(`Ignoring empty message from chat ${chatId}`)
@@ -232,7 +235,7 @@ bot.on('message', async (msg) => {
       user: {
         id: msg.from.id.toString(),
         username: msg.from.username || 'Unknown',
-        is_staff_member: await isAdmin(chatId, msg.from.id),
+        is_staff_member: await isAdmin(chatId, msg.from.id, false),
       },
       message: {
         id: `${chatId}-${msg.message_id}`,
@@ -269,7 +272,7 @@ bot.on('message', async (msg) => {
 bot.onText(/\/wallu_status/, async (msg) => {
   const chatId = msg.chat.id
   const userId = msg.from.id
-  if (!await isAdmin(chatId, userId)) {
+  if (!await isAdmin(chatId, userId, true)) {
     await bot.sendMessage(chatId, 'Only administrators can check the status.')
     return
   }
@@ -296,7 +299,7 @@ bot.onText(/\/wallu_status/, async (msg) => {
 bot.onText(/\/wallu_remove/, async (msg) => {
   const chatId = msg.chat.id
   const userId = msg.from.id
-  if (!await isAdmin(chatId, userId)) {
+  if (!await isAdmin(chatId, userId, true)) {
     await bot.sendMessage(chatId, 'Only administrators can remove the configuration.')
     return
   }
