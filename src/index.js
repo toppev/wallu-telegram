@@ -252,7 +252,7 @@ bot.on('message', withErrorHandling(async (msg) => {
       },
       user: {
         id: msg.from.id.toString(),
-        username: msg.from.username || 'Unknown',
+        username: msg.from.first_name || msg.from.username || 'Unknown',
         is_staff_member: await isAdmin(chatId, msg.from.id, false),
       },
       message: {
