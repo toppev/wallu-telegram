@@ -23,6 +23,17 @@ const setupStates = new Map()
 
 let botInfo = {}
 
+// Wrapper for handlers to catch and log exceptions
+function withErrorHandling(handler) {
+  return async (...args) => {
+    try {
+      return await handler(...args)
+    } catch (error) {
+      console.error('Handler error:', error.stack || error)
+    }
+  }
+}
+
 bot.getMe()
   .then(data => {
     console.log('Bot info:', data)
@@ -59,14 +70,14 @@ async function isAdmin(chatId, userId, verbose) {
 }
 
 // Help command
-bot.onText(/\/wallu_help/, async (msg) => {
+bot.onText(/\/wallu_help/, withErrorHandling(async (msg) => {
   await sendMarkdownMessage(msg.chat.id, WALLU_HELP_TEXT)
-})
-bot.onText(/\/help/, async (msg) => {
+}))
+bot.onText(/\/help/, withErrorHandling(async (msg) => {
   await sendMarkdownMessage(msg.chat.id, WALLU_HELP_TEXT)
-})
+}))
 // Setup command - Initiates API key setup via private message
-bot.onText(/\/wallu_setup/, async (msg) => {
+bot.onText(/\/wallu_setup/, withErrorHandling(async (msg) => {
   const chatId = msg.chat.id
   const userId = msg.from.id
 
@@ -85,9 +96,9 @@ bot.onText(/\/wallu_setup/, async (msg) => {
   } else {
     await startApiKeySetup(userId, chatId)
   }
-})
+}))
 
-bot.onText(/\/start(?:\s+(.+))?/, async (msg, match) => {
+bot.onText(/\/start(?:\s+(.+))?/, withErrorHandling(async (msg, match) => {
   const chatId = msg.chat.id
   const parameter = match[1] // This will contain our setup_CHATID if it exists
 
@@ -110,7 +121,7 @@ bot.onText(/\/start(?:\s+(.+))?/, async (msg, match) => {
       await bot.sendMessage(chatId, 'Failed to start setup. Please make sure I am a member of the target chat and try again.')
     }
   }
-})
+}))
 
 // Handle private setup
 async function startApiKeySetup(userId, targetChatId) {
@@ -143,7 +154,7 @@ async function ensureApiReachable(apiKey, contextString) {
   }
 }
 
-bot.on('callback_query', async (query) => {
+bot.on('callback_query', withErrorHandling(async (query) => {
   const userId = query.from.id
   const chatId = query.message.chat.id
 
@@ -166,10 +177,10 @@ bot.on('callback_query', async (query) => {
   } else {
     console.log('Unknown callback query:', query)
   }
-})
+}))
 
 // Handle private messages for setup
-bot.on('message', async (msg) => {
+bot.on('message', withErrorHandling(async (msg) => {
   if (msg.text && msg.text.startsWith('/')) {
     console.log("Ignoring a slash command")
     return
@@ -220,6 +231,13 @@ bot.on('message', async (msg) => {
       console.log(`Ignoring, no API key set for chat ${chatId}`)
       return
     }
+    // Skip messages older messages because (especially before the error handling) Telegram retries
+    // if we are down/there's a bug, it may otherwise answer 20h old messages or something
+    const messageAge = Date.now() - (msg.date * 1000)
+    if (messageAge > 5 * 60 * 1000) {
+      console.log(`Ignoring message older than 5 minutes (${Math.round(messageAge / 1000)}s old) from chat ${chatId}`)
+      return
+    }
     if (isBotMentioned) {
       await bot.sendChatAction(chatId, 'typing')
     }
@@ -266,10 +284,10 @@ bot.on('message', async (msg) => {
       await bot.sendMessage(chatId, 'Error processing message. Please check the API key configuration.')
     }
   }
-})
+}))
 
 // Status command
-bot.onText(/\/wallu_status/, async (msg) => {
+bot.onText(/\/wallu_status/, withErrorHandling(async (msg) => {
   const chatId = msg.chat.id
   const userId = msg.from.id
   if (!await isAdmin(chatId, userId, true)) {
@@ -294,9 +312,9 @@ bot.onText(/\/wallu_status/, async (msg) => {
       '❌ Bot is not configured.\n\n' +
       'Administrators can use /wallu_setup to configure the bot.')
   }
-})
+}))
 
-bot.onText(/\/wallu_remove/, async (msg) => {
+bot.onText(/\/wallu_remove/, withErrorHandling(async (msg) => {
   const chatId = msg.chat.id
   const userId = msg.from.id
   if (!await isAdmin(chatId, userId, true)) {
@@ -312,7 +330,7 @@ bot.onText(/\/wallu_remove/, async (msg) => {
   await bot.sendMessage(chatId,
     'Are you sure you want to remove the bot\'s configuration for this chat?',
     { reply_markup: keyboard })
-})
+}))
 
 async function sendMarkdownMessage(chatId, text, form = {}) {
   try {
