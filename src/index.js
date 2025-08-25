@@ -175,12 +175,11 @@ bot.on('message', async (msg) => {
     return
   }
   const userId = msg.from.id
-
   const setupState = setupStates.get(userId)
-  const setupTargetChatId = setupState.targetChatId;
-  const chatTitle = (await bot.getChat(setupTargetChatid)).title
   if (setupState && setupState.state === 'AWAITING_API_KEY') {
     try {
+      const setupTargetChatId = setupState.targetChatId;
+      const chatTitle = (await bot.getChat(setupTargetChatid)).title
       // Test we don't get 401 or 403 with the API key
       await ensureApiReachable(msg.text, `during setup by user ${userId}`)
 
@@ -203,12 +202,13 @@ bot.on('message', async (msg) => {
     await bot.deleteMessage(userId, msg.message_id)
     return
   }
-  const chatId = msg.chat.id
   const messageText = msg.text;
   if (!messageText || messageText.trim() === '') {
     console.log(`Ignoring empty message from chat ${chatId}`)
     return
   }
+  const chatId = msg.chat.id
+  const chatTitle = (await bot.getChat(chatId)).title
   const isBotMentioned = messageText && (
     msg.reply_to_message?.from?.id === botInfo.id ||
     msg.text.includes(`@${botInfo.username}`) ||
