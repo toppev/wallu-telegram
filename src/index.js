@@ -203,11 +203,11 @@ bot.on('message', async (msg) => {
     return
   }
   const messageText = msg.text;
+  const chatId = msg.chat.id
   if (!messageText || messageText.trim() === '') {
     console.log(`Ignoring empty message from chat ${chatId}`)
     return
   }
-  const chatId = msg.chat.id
   const chatTitle = (await bot.getChat(chatId)).title
   const isBotMentioned = messageText && (
     msg.reply_to_message?.from?.id === botInfo.id ||
