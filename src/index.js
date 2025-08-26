@@ -219,12 +219,16 @@ bot.on('message', withErrorHandling(async (msg) => {
     console.log(`Ignoring empty message from chat ${chatId}`)
     return
   }
-  const chatTitle = (await bot.getChat(chatId)).title
   const isBotMentioned = messageText && (
     msg.reply_to_message?.from?.id === botInfo.id ||
     msg.text.includes(`@${botInfo.username}`) ||
     msg.chat.type === 'private'
   )
+  if (msg.reply_to_message && !isBotMentioned) {
+    console.log(`Ignoring reply message from chat ${chatId} (not mentioned)`)
+    return
+  }
+  const chatTitle = (await bot.getChat(chatId)).title
   try {
     const apiKey = await db.getApiKeyFor(chatId)
     if (!apiKey) {
