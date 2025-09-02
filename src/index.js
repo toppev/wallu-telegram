@@ -187,6 +187,7 @@ bot.on('message', withErrorHandling(async (msg) => {
   }
   const userId = msg.from.id
   const setupState = setupStates.get(userId)
+  const chatId = msg.chat.id
   if (setupState && setupState.state === 'AWAITING_API_KEY') {
     try {
       const setupTargetChatId = setupState.targetChatId;
@@ -214,7 +215,6 @@ bot.on('message', withErrorHandling(async (msg) => {
     return
   }
   const messageText = msg.text;
-  const chatId = msg.chat.id
   if (!messageText || messageText.trim() === '') {
     console.log(`Ignoring empty message from chat ${chatId}`)
     return
