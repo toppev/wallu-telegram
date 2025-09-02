@@ -190,7 +190,7 @@ bot.on('message', withErrorHandling(async (msg) => {
   if (setupState && setupState.state === 'AWAITING_API_KEY') {
     try {
       const setupTargetChatId = setupState.targetChatId;
-      const chatTitle = (await bot.getChat(setupTargetChatid)).title
+      const chatTitle = (await bot.getChat(setupTargetChatId)).title
       // Test we don't get 401 or 403 with the API key
       await ensureApiReachable(msg.text, `during setup by user ${userId}`)
 
