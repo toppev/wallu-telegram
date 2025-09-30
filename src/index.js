@@ -101,10 +101,9 @@ bot.onText(/\/wallu_setup/, withErrorHandling(async (msg) => {
 bot.onText(/\/start(?:\s+(.+))?/, withErrorHandling(async (msg, match) => {
   const chatId = msg.chat.id
   const parameter = match[1] // This will contain our setup_CHATID if it exists
-
-  // Regular start command (no parameters)
   if (!parameter) {
-    await bot.sendMessage(chatId, WALLU_HELP_TEXT)
+    // Don't send help command or anything because this may be triggered with other bots /start commands
+    console.log('/start command received without parameters')
     return
   }
   // Handle setup deep link
