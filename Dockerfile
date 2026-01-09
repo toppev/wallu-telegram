@@ -1,5 +1,4 @@
-# TODO: upgrade to node 24 whenever it's released as it's LTS
-FROM node:23-slim AS base
+FROM node:24-slim AS base
 
 WORKDIR /app
 
