@@ -73,6 +73,12 @@ Yes, I know having it in .env next to the SQLite DB is not ideal (this feature i
    ./start-prod.sh
    ```
 
+The containers run as uid 1000, not root, so the `data/` directory has to be writable by it:
+
+```bash
+sudo chown -R 1000:1000 data
+```
+
 ## Troubleshooting
 
 **Bot not responding?**

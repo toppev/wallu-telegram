@@ -1,5 +1,18 @@
+# the containers run as uid 1000, so the data dirs must be owned by it - see README
+x-hardening: &hardening
+  init: true
+  security_opt:
+    - no-new-privileges:true
+  cap_drop: [ALL]
+  logging:
+    driver: json-file
+    options:
+      max-size: 10m
+      max-file: "3"
+
 services:
   bot-dev:
+    <<: *hardening
     build:
       context: .
       target: dev
@@ -22,17 +35,28 @@ services:
         - action: rebuild
           path: Dockerfile
   bot-prod:
+    <<: *hardening
     build:
       context: .
       target: prod
     container_name: wallu-telegram-bot
     profiles: [ prod ]
+    read_only: true
+    tmpfs: [ /tmp:size=16m ]  # sqlite scratch files
     volumes:
       - ./data:/app/data
     env_file: [ .env ]
     restart: unless-stopped
+    # leak guards, not a capacity plan
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 512m
+          pids: 128
     healthcheck:
-      test: [ "CMD", "sqlite3", "/app/data/wallu_telegram.db", "SELECT 1" ]
+      test: [ "CMD", "node", "-e", "require('better-sqlite3')('/app/data/wallu_telegram.db',{readonly:true,fileMustExist:true}).prepare('select 1').get()" ]
       interval: 30s
       timeout: 5s
       retries: 3
+      start_period: 30s

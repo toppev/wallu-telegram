@@ -1,0 +1,7 @@
+.git/
+node_modules/
+data/
+data-dev/
+.env
+.idea/
+*.iml
