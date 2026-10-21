@@ -13,6 +13,10 @@ FROM deps AS deps-dev
 RUN npm ci && npm rebuild better-sqlite3 --ignore-scripts=false
 
 FROM node:24-slim AS base
+# Node's bundled CA list still trusted emSign ECC Root CA - G3 after the 2026-10 eMudhra intermediate compromise
+# (https://emudhra.we-have-a-problem.com/) while Debian's had dropped it, so use Debian's (slim ships none)
+RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates && rm -rf /var/lib/apt/lists/*
+ENV NODE_OPTIONS=--use-openssl-ca SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt
 WORKDIR /app
 COPY --chown=node:node package.json package-lock.json ./
 COPY --chown=node:node src ./src
