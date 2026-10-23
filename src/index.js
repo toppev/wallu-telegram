@@ -23,13 +23,17 @@ const setupStates = new Map()
 
 let botInfo = {}
 
+// Log errors by their stack only: printing an AxiosError dumps its request config, i.e. the chat's Wallu API key
+// (X-API-Key), and a Telegram API error can carry the request url with our bot token
+const errorText = (error) => error?.stack || String(error)
+
 // Wrapper for handlers to catch and log exceptions
 function withErrorHandling(handler) {
   return async (...args) => {
     try {
       return await handler(...args)
     } catch (error) {
-      console.error('Handler error:', error.stack || error)
+      console.error('Handler error:', errorText(error))
     }
   }
 }
@@ -40,7 +44,7 @@ bot.getMe()
     botInfo = data
   })
   .catch(error => {
-    console.error('Error getting bot info:', error)
+    console.error('Error getting bot info:', errorText(error))
     // restart
     process.exit(1)
   })
@@ -64,7 +68,7 @@ async function isAdmin(chatId, userId, verbose) {
     }
     return ['creator', 'administrator'].includes(chatMember.status)
   } catch (error) {
-    console.error('Error checking admin status:', error)
+    console.error('Error checking admin status:', errorText(error))
     return false
   }
 }
@@ -116,7 +120,7 @@ bot.onText(/\/start(?:\s+(.+))?/, withErrorHandling(async (msg, match) => {
       }
       await startApiKeySetup(msg.from.id, targetChatId)
     } catch (error) {
-      console.error('Error in deep link setup:', error)
+      console.error('Error in deep link setup:', errorText(error))
       await bot.sendMessage(chatId, 'Failed to start setup. Please make sure I am a member of the target chat and try again.')
     }
   }
@@ -145,7 +149,7 @@ async function ensureApiReachable(apiKey, contextString) {
   try {
     await axios.post(`${WALLU_API_URL}/on-message`, {}, { headers: { "X-API-Key": apiKey, } })
   } catch (error) {
-    console.log('API returned status (checking reachability)', error.response.status)
+    console.log('API returned status (checking reachability)', error.response?.status)
     // this produce some 400 error, but we don't care about those as it's just invalid data
     if (error.response && [401, 403].includes(error.response.status)) {
       throw new Error(`Invalid API key supplied (${contextString})`)
@@ -162,12 +166,17 @@ bot.on('callback_query', withErrorHandling(async (query) => {
     await bot.answerCallbackQuery(query.id)
     await bot.sendMessage(userId, 'Setup cancelled.')
   } else if (query.data === 'remove_confirm') {
+    // the confirm button sits in the group chat, so any member could press it after an admin ran /wallu_remove
+    if (!await isAdmin(chatId, userId, true)) {
+      await bot.answerCallbackQuery(query.id, { text: 'Only administrators can remove the configuration.' })
+      return
+    }
     try {
       await db.deleteApiKey(chatId)
       await bot.answerCallbackQuery(query.id)
       await bot.sendMessage(chatId, '✅ Configuration has been removed successfully.')
     } catch (error) {
-      console.error('Error removing configuration:', error)
+      console.error('Error removing configuration:', errorText(error))
       await bot.sendMessage(chatId, '❌ Failed to remove configuration. Please try again later.')
     }
   } else if (query.data === 'remove_cancel') {
@@ -187,7 +196,8 @@ bot.on('message', withErrorHandling(async (msg) => {
   const userId = msg.from.id
   const setupState = setupStates.get(userId)
   const chatId = msg.chat.id
-  if (setupState && setupState.state === 'AWAITING_API_KEY') {
+  // only the private chat with the bot: a message the admin sends in a group meanwhile is not their API key
+  if (setupState && setupState.state === 'AWAITING_API_KEY' && chatId === userId) {
     try {
       const setupTargetChatId = setupState.targetChatId;
       const chatTitle = (await bot.getChat(setupTargetChatId)).title
@@ -202,7 +212,7 @@ bot.on('message', withErrorHandling(async (msg) => {
       }
       setupStates.delete(userId)
     } catch (error) {
-      console.error('Error saving API key:', error)
+      console.error('Error saving API key:', errorText(error))
       await bot.sendMessage(userId,
         'Failed to save API key. Possibly invalid API key. Please try again.',
         {
@@ -281,7 +291,7 @@ bot.on('message', withErrorHandling(async (msg) => {
       console.log(`Answered in chat ${chatId} (` + (chatTitle || 'private') + `)`)
     }
   } catch (error) {
-    console.error('Error processing message:', error)
+    console.error('Error processing message:', errorText(error))
     // Only send error messages to admins
     if (await isAdmin(chatId, msg.from.id) && isBotMentioned) {
       await bot.sendMessage(chatId, 'Error processing message. Please check the API key configuration.')
@@ -344,7 +354,7 @@ async function sendMarkdownMessage(chatId, text, form = {}) {
       ...form
     })
   } catch (error) {
-    console.error('Error sending Markdown message:', error)
+    console.error('Error sending Markdown message:', errorText(error))
     // on 400 error try without markdown
     if (error.response && error.response.statusCode === 400) {
       await bot.sendMessage(chatId, text, form)
