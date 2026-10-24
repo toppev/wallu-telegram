@@ -23,9 +23,13 @@ const setupStates = new Map()
 
 let botInfo = {}
 
-// Log errors by their stack only: printing an AxiosError dumps its request config, i.e. the chat's Wallu API key
-// (X-API-Key), and a Telegram API error can carry the request url with our bot token
-const errorText = (error) => error?.stack || String(error)
+// Log errors by their stack (+ the Wallu API's response for an AxiosError), never the whole error: printing an AxiosError
+// dumps its request config, i.e. the chat's Wallu API key (X-API-Key), and a Telegram API error can carry the request url with our bot token
+const errorText = (error) => {
+  const text = error?.stack || String(error)
+  if (!error?.isAxiosError || !error.response) return text
+  return `${text}\nresponse ${error.response.status}: ${JSON.stringify(error.response.data)?.slice(0, 1000)}`
+}
 
 // Wrapper for handlers to catch and log exceptions
 function withErrorHandling(handler) {
