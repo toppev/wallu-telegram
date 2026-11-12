@@ -1,5 +1,5 @@
-# tag, not a digest, so `docker compose build --pull` picks up node patches. 24 = active LTS
-FROM node:24-slim AS deps
+# tag, not a digest, so `docker compose build --pull` picks up node patches. 26 = active LTS, -slim = Debian trixie
+FROM node:26-slim AS deps
 WORKDIR /app
 # better-sqlite3 is native and .npmrc turns install scripts off, so build it here instead - from source,
 # which keeps it inside the integrity-checked npm tarball (the default downloads a binary from GitHub)
@@ -12,7 +12,7 @@ RUN npm ci --omit=dev && npm rebuild better-sqlite3 --ignore-scripts=false
 FROM deps AS deps-dev
 RUN npm ci && npm rebuild better-sqlite3 --ignore-scripts=false
 
-FROM node:24-slim AS base
+FROM node:26-slim AS base
 WORKDIR /app
 COPY --chown=node:node package.json package-lock.json ./
 COPY --chown=node:node src ./src
